@@ -1,7 +1,5 @@
 namespace Winforms_MVP_VM.Views;
 
-using System.ComponentModel.Design.Serialization;
-
 public partial class PersonalInfoView : UserControl, IPersonalInfoView
 {
     private TextBox nameTextBox;
@@ -11,38 +9,45 @@ public partial class PersonalInfoView : UserControl, IPersonalInfoView
     private Button nextButton;
     private Button cancelButton;
 
-    public ViewModels.PersonalInfoViewModel ViewModel { get; set; }
+    private Label nameErrorLabel;
+    private Label dobErrorLabel;
+    private Label genderErrorLabel;
 
-    public new string Name
-    {
-        get => nameTextBox.Text;
-        set => nameTextBox.Text = value;
-    }
-
-    public DateTime DateOfBirth
-    {
-        get => dateOfBirthPicker.Value;
-        set => dateOfBirthPicker.Value = value;
-    }
-
-    public string Gender
-    {
-        get => genderComboBox.SelectedItem?.ToString() ?? "";
-        set => genderComboBox.SelectedItem = value;
-    }
-
-    public bool IsActive
-    {
-        get => isActiveCheckBox.Checked;
-        set => isActiveCheckBox.Checked = value;
-    }
-
-    public event EventHandler NextButtonClicked;
     public event EventHandler CancelButtonClicked;
+
+    private ViewModels.PersonalInfoViewModel _viewModel;
+    public ViewModels.PersonalInfoViewModel ViewModel
+    {
+        get => _viewModel;
+        set
+        {
+            _viewModel = value;
+            nameTextBox.Text = _viewModel.Name;
+            dateOfBirthPicker.Value = _viewModel.DateOfBirth < DateTimePicker.MinimumDateTime
+                                              ? DateTimePicker.MinimumDateTime
+                                              : _viewModel.DateOfBirth;
+            genderComboBox.SelectedItem = _viewModel.Gender;
+            isActiveCheckBox.Checked = _viewModel.IsActive;
+
+            _viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(ViewModels.PersonalInfoViewModel.ValidationErrors))
+                    UpdateErrorLabels();
+            };
+        }
+    }
 
     public PersonalInfoView()
     {
         InitializeComponentCustom();
+    }
+
+    private void UpdateErrorLabels()
+    {
+        var errors = _viewModel.ValidationErrors;
+        nameErrorLabel.Text = errors.TryGetValue("Name", out var n) ? n : "";
+        dobErrorLabel.Text = errors.TryGetValue("DateOfBirth", out var d) ? d : "";
+        genderErrorLabel.Text = errors.TryGetValue("Gender", out var g) ? g : "";
     }
 
     private void InitializeComponentCustom()
@@ -54,45 +59,55 @@ public partial class PersonalInfoView : UserControl, IPersonalInfoView
         var mainLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 3,
             RowCount = 5,
             Padding = new Padding(20)
         };
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70));
 
-        var nameLabel = new Label { Text = "Name:", AutoSize = true };
+        // Name
+        mainLayout.Controls.Add(new Label { Text = "Name:", AutoSize = true }, 0, 0);
         nameTextBox = new TextBox { Dock = DockStyle.Fill };
-        mainLayout.Controls.Add(nameLabel, 0, 0);
+        nameTextBox.TextChanged += (s, e) => { if (_viewModel != null) _viewModel.Name = nameTextBox.Text; };
         mainLayout.Controls.Add(nameTextBox, 1, 0);
+        nameErrorLabel = new Label { ForeColor = Color.Red, AutoSize = true };
+        mainLayout.Controls.Add(nameErrorLabel, 2, 0);
 
-        var dobLabel = new Label { Text = "Date of Birth:", AutoSize = true };
+        // Date of Birth
+        mainLayout.Controls.Add(new Label { Text = "Date of Birth:", AutoSize = true }, 0, 1);
         dateOfBirthPicker = new DateTimePicker { Dock = DockStyle.Fill, Format = DateTimePickerFormat.Short };
-        mainLayout.Controls.Add(dobLabel, 0, 1);
+        dateOfBirthPicker.ValueChanged += (s, e) => { if (_viewModel != null) _viewModel.DateOfBirth = dateOfBirthPicker.Value; };
         mainLayout.Controls.Add(dateOfBirthPicker, 1, 1);
+        dobErrorLabel = new Label { ForeColor = Color.Red, AutoSize = true };
+        mainLayout.Controls.Add(dobErrorLabel, 2, 1);
 
-        var genderLabel = new Label { Text = "Gender:", AutoSize = true };
+        // Gender
+        mainLayout.Controls.Add(new Label { Text = "Gender:", AutoSize = true }, 0, 2);
         genderComboBox = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList };
         genderComboBox.Items.AddRange(new[] { "Male", "Female", "Other" });
-        mainLayout.Controls.Add(genderLabel, 0, 2);
+        genderComboBox.SelectedIndexChanged += (s, e) => { if (_viewModel != null) _viewModel.Gender = genderComboBox.SelectedItem?.ToString() ?? ""; };
         mainLayout.Controls.Add(genderComboBox, 1, 2);
+        genderErrorLabel = new Label { ForeColor = Color.Red, AutoSize = true };
+        mainLayout.Controls.Add(genderErrorLabel, 2, 2);
 
-        var isActiveLabel = new Label { Text = "Is Active:", AutoSize = true };
+        // Is Active (no validation needed)
+        mainLayout.Controls.Add(new Label { Text = "Is Active:", AutoSize = true }, 0, 3);
         isActiveCheckBox = new CheckBox { AutoSize = true };
-        mainLayout.Controls.Add(isActiveLabel, 0, 3);
+        isActiveCheckBox.CheckedChanged += (s, e) => { if (_viewModel != null) _viewModel.IsActive = isActiveCheckBox.Checked; };
         mainLayout.Controls.Add(isActiveCheckBox, 1, 3);
 
+        // Buttons
         var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft };
         nextButton = new Button { Text = "Next", Width = 100, Height = 40 };
-        cancelButton = new Button { Text = "Cancel", Width = 100, Height = 40};
-
-        nextButton.Click += (s, e) => NextButtonClicked?.Invoke(this, EventArgs.Empty);
+        cancelButton = new Button { Text = "Cancel", Width = 100, Height = 40 };
+        nextButton.Click += (s, e) => _viewModel?.RequestNext();
         cancelButton.Click += (s, e) => CancelButtonClicked?.Invoke(this, EventArgs.Empty);
-
         buttonPanel.Controls.Add(nextButton);
         buttonPanel.Controls.Add(cancelButton);
         mainLayout.Controls.Add(buttonPanel, 0, 4);
-        mainLayout.SetColumnSpan(buttonPanel, 2);
+        mainLayout.SetColumnSpan(buttonPanel, 3);
 
         Controls.Add(mainLayout);
         ResumeLayout(false);

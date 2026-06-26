@@ -1,7 +1,5 @@
 namespace Winforms_MVP_VM.Views;
 
-using System.ComponentModel.Design.Serialization;
-
 public partial class ContactInfoView : UserControl, IContactInfoView
 {
     private TextBox cellphoneTextBox;
@@ -9,26 +7,39 @@ public partial class ContactInfoView : UserControl, IContactInfoView
     private Button saveButton;
     private Button cancelButton;
 
-    public ViewModels.ContactInfoViewModel ViewModel { get; set; }
+    private Label cellphoneErrorLabel;
+    private Label emailErrorLabel;
 
-    public string CellphoneNumber
-    {
-        get => cellphoneTextBox.Text;
-        set => cellphoneTextBox.Text = value;
-    }
-
-    public string Email
-    {
-        get => emailTextBox.Text;
-        set => emailTextBox.Text = value;
-    }
-
-    public event EventHandler SaveButtonClicked;
     public event EventHandler CancelButtonClicked;
+
+    private ViewModels.ContactInfoViewModel _viewModel;
+    public ViewModels.ContactInfoViewModel ViewModel
+    {
+        get => _viewModel;
+        set
+        {
+            _viewModel = value;
+            cellphoneTextBox.Text = _viewModel.CellphoneNumber;
+            emailTextBox.Text = _viewModel.Email;
+
+            _viewModel.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(ViewModels.ContactInfoViewModel.ValidationErrors))
+                    UpdateErrorLabels();
+            };
+        }
+    }
 
     public ContactInfoView()
     {
         InitializeComponentCustom();
+    }
+
+    private void UpdateErrorLabels()
+    {
+        var errors = _viewModel.ValidationErrors;
+        cellphoneErrorLabel.Text = errors.TryGetValue("CellphoneNumber", out var c) ? c : "";
+        emailErrorLabel.Text = errors.TryGetValue("Email", out var e) ? e : "";
     }
 
     private void InitializeComponentCustom()
@@ -40,34 +51,40 @@ public partial class ContactInfoView : UserControl, IContactInfoView
         var mainLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
+            ColumnCount = 3,
             RowCount = 3,
             Padding = new Padding(20)
         };
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
         mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
-        mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70));
 
-        var cellphoneLabel = new Label { Text = "Cellphone Number:", AutoSize = true };
+        // Cellphone
+        mainLayout.Controls.Add(new Label { Text = "Cellphone Number:", AutoSize = true }, 0, 0);
         cellphoneTextBox = new TextBox { Dock = DockStyle.Fill };
-        mainLayout.Controls.Add(cellphoneLabel, 0, 0);
+        cellphoneTextBox.TextChanged += (s, e) => { if (_viewModel != null) _viewModel.CellphoneNumber = cellphoneTextBox.Text; };
         mainLayout.Controls.Add(cellphoneTextBox, 1, 0);
+        cellphoneErrorLabel = new Label { ForeColor = Color.Red, AutoSize = true };
+        mainLayout.Controls.Add(cellphoneErrorLabel, 2, 0);
 
-        var emailLabel = new Label { Text = "Email Address:", AutoSize = true };
+        // Email
+        mainLayout.Controls.Add(new Label { Text = "Email Address:", AutoSize = true }, 0, 1);
         emailTextBox = new TextBox { Dock = DockStyle.Fill };
-        mainLayout.Controls.Add(emailLabel, 0, 1);
+        emailTextBox.TextChanged += (s, e) => { if (_viewModel != null) _viewModel.Email = emailTextBox.Text; };
         mainLayout.Controls.Add(emailTextBox, 1, 1);
+        emailErrorLabel = new Label { ForeColor = Color.Red, AutoSize = true };
+        mainLayout.Controls.Add(emailErrorLabel, 2, 1);
 
+        // Buttons
         var buttonPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft };
         saveButton = new Button { Text = "Save", Width = 100, Height = 40 };
-        cancelButton = new Button { Text = "Cancel", Width = 100, Height = 40};
-
-        saveButton.Click += (s, e) => SaveButtonClicked?.Invoke(this, EventArgs.Empty);
+        cancelButton = new Button { Text = "Cancel", Width = 100, Height = 40 };
+        saveButton.Click += (s, e) => _viewModel?.RequestSave();
         cancelButton.Click += (s, e) => CancelButtonClicked?.Invoke(this, EventArgs.Empty);
-
         buttonPanel.Controls.Add(saveButton);
         buttonPanel.Controls.Add(cancelButton);
         mainLayout.Controls.Add(buttonPanel, 0, 2);
-        mainLayout.SetColumnSpan(buttonPanel, 2);
+        mainLayout.SetColumnSpan(buttonPanel, 3);
 
         Controls.Add(mainLayout);
         ResumeLayout(false);

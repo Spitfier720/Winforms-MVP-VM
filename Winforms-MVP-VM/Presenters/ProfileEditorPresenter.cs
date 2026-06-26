@@ -4,16 +4,6 @@ public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.
 {
     private readonly Views.BaseMasterView _masterForm;
 
-    // Step views
-    private Views.PersonalInfoView _personalInfoView;
-    private Views.EmploymentInfoView _employmentInfoView;
-    private Views.ContactInfoView _contactInfoView;
-
-    // Step view models — owned by this presenter for the duration of the flow
-    private ViewModels.PersonalInfoViewModel _personalInfoViewModel;
-    private ViewModels.EmploymentInfoViewModel _employmentInfoViewModel;
-    private ViewModels.ContactInfoViewModel _contactInfoViewModel;
-
     // The profile being created or edited
     private Models.Profile _currentProfile;
     private bool _isEditing;
@@ -27,6 +17,7 @@ public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.
     protected override void SubscribeToViewEvents()
     {
         View.CreateProfileButtonClicked += OnCreateProfileClicked;
+        View.EditProfileRequested += OnEditProfileRequested;
     }
 
     // -------------------------------------------------------------------------
@@ -40,11 +31,7 @@ public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.
         ShowPersonalInfoView();
     }
 
-    /// <summary>
-    /// Call this from outside (e.g. when the user selects a row and clicks Edit)
-    /// to begin editing an existing profile through the same multi-step flow.
-    /// </summary>
-    public void StartEdit(Models.Profile profile)
+    private void OnEditProfileRequested(object sender, Models.Profile profile)
     {
         _isEditing = true;
         _currentProfile = profile;
@@ -57,31 +44,29 @@ public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.
 
     private void ShowPersonalInfoView()
     {
-        _personalInfoViewModel = new ViewModels.PersonalInfoViewModel
+        var view = new Views.PersonalInfoView
         {
-            Name = _currentProfile.Name,
-            DateOfBirth = _currentProfile.DateOfBirth,
-            Gender = _currentProfile.Gender,
-            IsActive = _currentProfile.IsActive
+            ViewModel = new ViewModels.PersonalInfoViewModel
+            {
+                Name = _currentProfile.Name,
+                DateOfBirth = _currentProfile.DateOfBirth,
+                Gender = _currentProfile.Gender,
+                IsActive = _currentProfile.IsActive
+            }
         };
 
-        _personalInfoView = new Views.PersonalInfoView
-        {
-            ViewModel = _personalInfoViewModel
-        };
+        view.ViewModel.NextRequested += OnPersonalInfoNext;
+        view.CancelButtonClicked += OnCancelled;
 
-        _personalInfoView.NextButtonClicked += OnPersonalInfoNext;
-        _personalInfoView.CancelButtonClicked += OnCancelled;
-
-        _masterForm.DisplayView(_personalInfoView);
+        _masterForm.DisplayView(view);
     }
 
-    private void OnPersonalInfoNext(object? sender, EventArgs e)
+    private void OnPersonalInfoNext(object sender, ViewModels.PersonalInfoViewModel viewModel)
     {
-        _currentProfile.Name = _personalInfoView.Name;
-        _currentProfile.DateOfBirth = _personalInfoView.DateOfBirth;
-        _currentProfile.Gender = _personalInfoView.Gender;
-        _currentProfile.IsActive = _personalInfoView.IsActive;
+        _currentProfile.Name = viewModel.Name;
+        _currentProfile.DateOfBirth = viewModel.DateOfBirth;
+        _currentProfile.Gender = viewModel.Gender;
+        _currentProfile.IsActive = viewModel.IsActive;
 
         ShowEmploymentInfoView();
     }
@@ -92,29 +77,27 @@ public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.
 
     private void ShowEmploymentInfoView()
     {
-        _employmentInfoViewModel = new ViewModels.EmploymentInfoViewModel
+        var view = new Views.EmploymentInfoView
         {
-            JobTitle = _currentProfile.JobTitle,
-            Company = _currentProfile.Company,
-            Salary = _currentProfile.Salary
+            ViewModel = new ViewModels.EmploymentInfoViewModel
+            {
+                JobTitle = _currentProfile.JobTitle,
+                Company = _currentProfile.Company,
+                Salary = _currentProfile.Salary
+            }
         };
 
-        _employmentInfoView = new Views.EmploymentInfoView
-        {
-            ViewModel = _employmentInfoViewModel
-        };
+        view.ViewModel.NextRequested += OnEmploymentInfoNext;
+        view.CancelButtonClicked += OnCancelled;
 
-        _employmentInfoView.NextButtonClicked += OnEmploymentInfoNext;
-        _employmentInfoView.CancelButtonClicked += OnCancelled;
-
-        _masterForm.DisplayView(_employmentInfoView);
+        _masterForm.DisplayView(view);
     }
 
-    private void OnEmploymentInfoNext(object? sender, EventArgs e)
+    private void OnEmploymentInfoNext(object sender, ViewModels.EmploymentInfoViewModel viewModel)
     {
-        _currentProfile.JobTitle = _employmentInfoView.JobTitle;
-        _currentProfile.Company = _employmentInfoView.Company;
-        _currentProfile.Salary = _employmentInfoView.Salary;
+        _currentProfile.JobTitle = viewModel.JobTitle;
+        _currentProfile.Company = viewModel.Company;
+        _currentProfile.Salary = viewModel.Salary;
 
         ShowContactInfoView();
     }
@@ -125,27 +108,25 @@ public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.
 
     private void ShowContactInfoView()
     {
-        _contactInfoViewModel = new ViewModels.ContactInfoViewModel
+        var view = new Views.ContactInfoView
         {
-            CellphoneNumber = _currentProfile.CellphoneNumber,
-            Email = _currentProfile.Email
+            ViewModel = new ViewModels.ContactInfoViewModel
+            {
+                CellphoneNumber = _currentProfile.CellphoneNumber,
+                Email = _currentProfile.Email
+            }
         };
 
-        _contactInfoView = new Views.ContactInfoView
-        {
-            ViewModel = _contactInfoViewModel
-        };
+        view.ViewModel.SaveRequested += OnSaved;
+        view.CancelButtonClicked += OnCancelled;
 
-        _contactInfoView.SaveButtonClicked += OnSaved;
-        _contactInfoView.CancelButtonClicked += OnCancelled;
-
-        _masterForm.DisplayView(_contactInfoView);
+        _masterForm.DisplayView(view);
     }
 
-    private void OnSaved(object? sender, EventArgs e)
+    private void OnSaved(object sender, ViewModels.ContactInfoViewModel viewModel)
     {
-        _currentProfile.CellphoneNumber = _contactInfoView.CellphoneNumber;
-        _currentProfile.Email = _contactInfoView.Email;
+        _currentProfile.CellphoneNumber = viewModel.CellphoneNumber;
+        _currentProfile.Email = viewModel.Email;
 
         if (!_isEditing)
             ViewModel.AddProfile(_currentProfile);

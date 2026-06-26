@@ -1,7 +1,5 @@
 namespace Winforms_MVP_VM.Views;
 
-using System.ComponentModel.Design.Serialization;
-
 public partial class MainForm : UserControl, IMainView
 {
     private Button createProfileButton;
@@ -13,6 +11,7 @@ public partial class MainForm : UserControl, IMainView
     public bool AutoResizeParentForm { get; set; } = true;
 
     public event EventHandler CreateProfileButtonClicked;
+    public event NavigationEventHandler<Models.Profile> EditProfileRequested;
 
     public MainForm()
     {
@@ -43,12 +42,23 @@ public partial class MainForm : UserControl, IMainView
             ReadOnly = true,
             AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells
         };
+        profileDataGrid.CellDoubleClick += OnCellDoubleClick;
 
         Controls.Add(profileDataGrid);
         Controls.Add(createProfileButton);
         Controls.SetChildIndex(createProfileButton, 0);
 
         ResumeLayout(false);
+    }
+
+    private void OnCellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+    {
+        // Ignore header row double-clicks
+        if (e.RowIndex < 0) return;
+
+        var profile = ViewModel?.Profiles?[e.RowIndex];
+        if (profile != null)
+            EditProfileRequested?.Invoke(this, profile);
     }
 
     public void UpdateDataGrid(List<Models.Profile> profiles)
@@ -73,13 +83,11 @@ public partial class MainForm : UserControl, IMainView
         var parentForm = FindForm();
         if (parentForm == null) return;
 
-        // Ensure layout is up-to-date
         parentForm.SuspendLayout();
         profileDataGrid.PerformLayout();
 
         var gridPreferred = profileDataGrid.PreferredSize;
 
-        // Add margins for scrollbars and chrome (approximate)
         int desiredWidth = gridPreferred.Width + SystemInformation.VerticalScrollBarWidth;
         int desiredHeight = gridPreferred.Height + createProfileButton.Height + SystemInformation.CaptionHeight + 80;
 
