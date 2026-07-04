@@ -90,6 +90,9 @@ public partial class ContactInfoView : UserControl, IContactInfoView
         ResumeLayout(false);
     }
 
+    // Test hook — allows tests to simulate a cancel click without UI interaction
+    internal void OnCancelForTest() => CancelButtonClicked?.Invoke(this, EventArgs.Empty);
+
     void IView<ViewModels.ContactInfoViewModel>.ShowView() { }
     void IView<ViewModels.ContactInfoViewModel>.CloseView() { }
 }

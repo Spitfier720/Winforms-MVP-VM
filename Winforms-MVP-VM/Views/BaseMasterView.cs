@@ -1,6 +1,6 @@
 namespace Winforms_MVP_VM.Views;
 
-public partial class BaseMasterView : Form
+public partial class BaseMasterView : Form, IMasterView
 {
     protected Panel containerPanel;
 

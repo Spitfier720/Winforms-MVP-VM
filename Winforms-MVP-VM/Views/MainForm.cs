@@ -99,6 +99,11 @@ public partial class MainForm : UserControl, IMainView
         parentForm.ResumeLayout();
     }
 
+    // Test hooks — allow tests to simulate button clicks and grid interactions
+    internal void OnCreateForTest() => CreateProfileButtonClicked?.Invoke(this, EventArgs.Empty);
+    internal void OnCellDoubleClickForTest(int rowIndex) =>
+        OnCellDoubleClick(this, new DataGridViewCellEventArgs(0, rowIndex));
+
     void IView<ViewModels.MainViewModel>.ShowView() => Show();
     void IView<ViewModels.MainViewModel>.CloseView() => Hide();
 }

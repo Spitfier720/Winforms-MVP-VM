@@ -2,13 +2,13 @@ namespace Winforms_MVP_VM.Presenters;
 
 public class ProfileEditorPresenter : BasePresenter<Views.IMainView, ViewModels.MainViewModel>
 {
-    private readonly Views.BaseMasterView _masterForm;
+    private readonly Views.IMasterView _masterForm;
 
     // The profile being created or edited
     private Models.Profile _currentProfile;
     private bool _isEditing;
 
-    public ProfileEditorPresenter(Views.IMainView mainView, ViewModels.MainViewModel mainViewModel, Views.BaseMasterView masterForm)
+    public ProfileEditorPresenter(Views.IMainView mainView, ViewModels.MainViewModel mainViewModel, Views.IMasterView masterForm)
         : base(mainView, mainViewModel)
     {
         _masterForm = masterForm;

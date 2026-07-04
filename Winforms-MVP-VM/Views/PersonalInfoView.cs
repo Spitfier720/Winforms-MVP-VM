@@ -113,6 +113,9 @@ public partial class PersonalInfoView : UserControl, IPersonalInfoView
         ResumeLayout(false);
     }
 
+    // Test hook — allows tests to simulate a cancel click without UI interaction
+    internal void OnCancelForTest() => CancelButtonClicked?.Invoke(this, EventArgs.Empty);
+
     void IView<ViewModels.PersonalInfoViewModel>.ShowView() { }
     void IView<ViewModels.PersonalInfoViewModel>.CloseView() { }
 }
