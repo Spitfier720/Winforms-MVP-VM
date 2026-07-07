@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="Winforms-MVP-VM-Test/Winforms-MVP-VM-Test.csproj" />
+  <Project Path="Winforms-MVP-VM/Winforms-MVP-VM.csproj" />
 </Solution>
