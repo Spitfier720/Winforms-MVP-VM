@@ -106,9 +106,6 @@ public partial class EmploymentInfoView : UserControl, IEmploymentInfoView
         ResumeLayout(false);
     }
 
-    // Test hook — allows tests to simulate a cancel click without UI interaction
-    internal void OnCancelForTest() => CancelButtonClicked?.Invoke(this, EventArgs.Empty);
-
     void IView<ViewModels.EmploymentInfoViewModel>.ShowView() { }
     void IView<ViewModels.EmploymentInfoViewModel>.CloseView() { }
 }
